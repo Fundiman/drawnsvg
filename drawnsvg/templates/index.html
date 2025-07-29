@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live SVG Draw</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #drawArea {
+      width: 100%;
+      height: 100%;
+      background: white;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="drawArea">
+    <svg id="svgCanvas" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io()
+    const svg = document.getElementById("svgCanvas")
+    let drawing = false
+    let lastX, lastY
+
+    function createLine(x1, y1, x2, y2) {
+      let line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+      line.setAttribute("x1", x1)
+      line.setAttribute("y1", y1)
+      line.setAttribute("x2", x2)
+      line.setAttribute("y2", y2)
+      line.setAttribute("stroke", "black")
+      line.setAttribute("stroke-width", "2")
+      return line
+    }
+
+    svg.addEventListener("pointerdown", (e) => {
+      drawing = true
+      lastX = e.offsetX
+      lastY = e.offsetY
+    })
+
+    svg.addEventListener("pointermove", (e) => {
+      if (!drawing) return
+      let x = e.offsetX
+      let y = e.offsetY
+      let line = createLine(lastX, lastY, x, y)
+      svg.appendChild(line)
+      socket.emit("line", { x1: lastX, y1: lastY, x2: x, y2: y })
+      lastX = x
+      lastY = y
+    })
+
+    svg.addEventListener("pointerup", () => {
+      drawing = false
+    })
+
+    socket.on("line", (data) => {
+      let line = createLine(data.x1, data.y1, data.x2, data.y2)
+      svg.appendChild(line)
+    })
+  </script>
+</body>
+</html>
